@@ -9,9 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, X, ImageIcon, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+interface UploadedImage {
+  file: File
+  preview: string
+}
+
 interface MultiImageUploadProps {
-  images: string[]
-  onImagesChange: (images: string[]) => void
+  images: UploadedImage[]
+  onImagesChange: (images: UploadedImage[]) => void
   maxImages?: number
   minImages?: number
   className?: string
@@ -26,6 +31,12 @@ export function MultiImageUpload({
 }: MultiImageUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  interface UploadedImage {
+    file: File
+    preview: string
+  }
+
+
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -59,42 +70,42 @@ export function MultiImageUpload({
     [images, maxImages],
   )
 
-  const handleFiles = (files: File[]) => {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"))
 
-    if (imageFiles.length === 0) {
-      setError("Please select valid image files")
-      return
-    }
+  const handleFiles = async (files: File[]) => {
+  const imageFiles = files.filter((file) => file.type.startsWith("image/"))
 
-    if (images.length + imageFiles.length > maxImages) {
-      setError(`Maximum ${maxImages} images allowed`)
-      return
-    }
-
-    // Convert files to URLs (in a real app, you'd upload to a server)
-    const newImageUrls: string[] = []
-    imageFiles.forEach((file, index) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const url = e.target?.result as string
-        newImageUrls.push(url)
-
-        // When all files are processed, update the images
-        if (newImageUrls.length === imageFiles.length) {
-          onImagesChange([...images, ...newImageUrls])
-        }
-      }
-      reader.readAsDataURL(file)
-    })
+  if (imageFiles.length === 0) {
+    setError("Please select valid image files")
+    return
   }
+
+  if (images.length + imageFiles.length > maxImages) {
+    setError(`Maximum ${maxImages} images allowed`)
+    return
+  }
+
+  const newUploads: UploadedImage[] = await Promise.all(
+    imageFiles.map(async (file) => {
+      const preview = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.readAsDataURL(file)
+      })
+      return { file, preview }
+    })
+  )
+
+  onImagesChange([...images, ...newUploads])
+}
+
+
+
 
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
-    onImagesChange(newImages)
-    setError(null)
-  }
-
+    const newImages = [...images].filter((_, i) => i !== index);
+    onImagesChange(newImages as UploadedImage[]);
+    setError(null);
+  };
   const isMinimumMet = images.length >= minImages
   const canAddMore = images.length < maxImages
 
@@ -160,7 +171,7 @@ export function MultiImageUpload({
             <Card key={index} className="image-preview-item">
               <CardContent className="p-0 h-full">
                 <img
-                  src={image || "/placeholder.svg"}
+                  src={typeof image === "string" ? image : image.preview || "/placeholder.svg"}
                   alt={`Product image ${index + 1}`}
                   className="w-full h-full object-cover"
                 />

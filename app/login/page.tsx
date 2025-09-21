@@ -11,28 +11,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Shield } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+import { useAuth } from "@/context/AuthContext";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { login, logout, user, isLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
 
-    // Simulate authentication
-    if (email === "admin@techhub.com" && password === "admin123") {
-      localStorage.setItem("adminAuth", "true")
-      router.push("/dashboard")
-    } else {
-      setError("Invalid email or password")
-    }
-
-    setIsLoading(false)
+    login(email, password)
   }
 
   return (
@@ -51,11 +44,11 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@techhub.com"
+                  id="username"
+                  type="text"
+                  placeholder="adminUser"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -92,9 +85,6 @@ export default function LoginPage() {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              Demo credentials: admin@techhub.com / admin123
-            </div>
           </CardContent>
         </Card>
       </div>

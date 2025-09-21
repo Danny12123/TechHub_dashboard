@@ -21,10 +21,12 @@ import {
   Edit,
   Trash2
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardPage() {
   const router = useRouter();
-
+  const { user, isLoading } = useAuth();
+  console.log(user);
   // useEffect(() => {
   //   // Set authentication flag for demo
   //   sessionStorage.setItem("admin-logged-in", "true")

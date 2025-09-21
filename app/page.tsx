@@ -3,42 +3,24 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Shield, Eye, EyeOff } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    if (email === "admin@techhub.com" && password === "admin123") {
-      toast({
-        title: "Login successful",
-        description: "Welcome to TechHub Admin Dashboard",
-      })
-      router.push("/dashboard")
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive",
-      })
+  const { login, isLoading } = useAuth();
+  
+    const handleLogin = async (e: React.FormEvent) => {
+      e.preventDefault()
+  
+      login(email, password)
     }
-
-    setIsLoading(false)
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
@@ -67,11 +49,11 @@ export default function AdminLoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@techhub.com"
+                  id="username"
+                  type="text"
+                  placeholder="admintechhub"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -111,19 +93,6 @@ export default function AdminLoginPage() {
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-dashed">
-              <p className="text-sm font-medium text-muted-foreground mb-2">Demo Credentials:</p>
-              <div className="text-sm space-y-1">
-                <p>
-                  <strong>Email:</strong> admin@techhub.com
-                </p>
-                <p>
-                  <strong>Password:</strong> admin123
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 

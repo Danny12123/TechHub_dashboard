@@ -14,6 +14,32 @@ import { Switch } from "@/components/ui/switch"
 import { MultiImageUpload } from "@/components/multi-image-upload"
 import { ArrowLeft, Save, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { uploadMedia } from "@/lib/utils"
+
+interface FormData {
+  name: string;
+  brand: string;
+  description: string;
+  tags: string;
+  price: string;
+  comparePrice: string;
+  sku: string;
+  stock: string;
+  category: string;
+  weight: string;
+  shipping_length_cm: number;
+  shipping_width_cm: number;
+  shipping_height_cm: number;
+  dimensions: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  specifications: { key: string; value: string }[];
+}
+
+interface UploadedImage {
+  file: File
+  preview: string
+}
 
 export default function NewProductPage() {
   const router = useRouter()
@@ -21,7 +47,7 @@ export default function NewProductPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
     price: "",
@@ -31,42 +57,129 @@ export default function NewProductPage() {
     sku: "",
     stock: "",
     weight: "",
+    shipping_length_cm: 0,
+    shipping_width_cm: 0,
+    shipping_height_cm: 0,
     dimensions: "",
     isActive: true,
     isFeatured: false,
     tags: "",
+    specifications: [] as { key: string; value: string }[],
+
   })
 
-  const [images, setImages] = useState<string[]>([])
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const [images, setImages] = useState<UploadedImage[]>([])
+  console.log(images)
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
   }
+
+
+  const handleSpecChange = (index: number, field: "key" | "value", value: string) => {
+    const updatedSpecs = [...formData.specifications];
+    updatedSpecs[index][field] = value;
+    handleInputChange("specifications", updatedSpecs);
+  };
+
+  const addSpecification = () => {
+    handleInputChange("specifications", [...formData.specifications, { key: "", value: "" }]);
+  };
+
+  const removeSpecification = (index: number) => {
+    const updatedSpecs = formData.specifications.filter((_, i) => i !== index);
+    handleInputChange("specifications", updatedSpecs);
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     // Validate required fields
-    if (!formData.name || !formData.price || !formData.category || images.length < 4) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields and upload at least 4 images",
-        variant: "destructive",
-      })
-      setIsLoading(false)
-      return
+    // if (!formData.name || !formData.price || !formData.category || images.length < 4) {
+    //   toast({
+    //     title: "Validation Error",
+    //     description: "Please fill in all required fields and upload at least 4 images",
+    //     variant: "destructive",
+    //   })
+    //   setIsLoading(false)
+    //   return
+    // }
+    // 2. Upload images/videos to Supabase
+    const uploadedMedia = []
+
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i] as UploadedImage
+      console.log("Processing image", i, img);
+      
+      if (!img.file || !(img.file instanceof File)) {
+        console.error("Invalid file at index", i, img);
+        toast({
+          title: "Image Upload Error",
+          description: `Image ${i + 1} is not a valid file. Please re-upload.`,
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+      
+      try {
+        console.log("Uploading image", i, img.file.name);
+        const url = await uploadMedia(img.file)
+        console.log("Upload successful, URL:", url);
+        uploadedMedia.push({
+          media_url: url,
+          media_type: img.file.type.startsWith("video") ? "video" : "image",
+          alt_text: formData.name,
+          sort_order: i,
+          is_primary: i === 0,
+        })
+      } catch (err) {
+        console.error("Upload failed for image", i, err);
+        toast({
+          title: "Image Upload Error",
+          description: `Failed to upload image ${i + 1}`,
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+    }
+    console.log("Starting upload of images:", uploadMedia)
+    // 3. Transform data to backend shape
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      specifications: {}, // you can extend this
+      brand: formData.brand,
+      tags: formData.tags,
+      price: parseFloat(formData.price),
+      compare_at_price: parseFloat(formData.comparePrice || "0"),
+      category_id: formData.category, // ensure it matches backend UUID
+      sku: formData.sku,
+      stock_quantity: parseInt(formData.stock || "0"),
+      status: formData.isActive ? "active" : "inactive",
+      is_featured: formData.isFeatured,
+      shipping_weight_kg: parseFloat(formData.weight || "0"),
+      shipping_length_cm: 0, // parse from dimensions if needed
+      shipping_width_cm: 0,
+      shipping_height_cm: 0,
+      media: uploadedMedia,
     }
 
+    console.log("Form Data:", payload)
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // await new Promise((resolve) => setTimeout(resolve, 2000))
 
     toast({
       title: "Product Created",
       description: `${formData.name} has been successfully added to your inventory`,
     })
 
-    router.push("/dashboard/products")
+    // router.push("/dashboard/products")
     setIsLoading(false)
   }
 
@@ -128,6 +241,36 @@ export default function NewProductPage() {
                     onChange={(e) => handleInputChange("description", e.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Specifications</Label>
+                  <div className="space-y-3">
+                    {formData.specifications.map((spec, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Key (e.g., Condition)"
+                          value={spec.key}
+                          onChange={(e) => handleSpecChange(index, "key", e.target.value)}
+                        />
+                        <Input
+                          placeholder="Value (e.g., New)"
+                          value={spec.value}
+                          onChange={(e) => handleSpecChange(index, "value", e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => removeSpecification(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" onClick={addSpecification}>
+                    + Add Specification
+                  </Button>
+                </div>
+
 
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
@@ -148,7 +291,12 @@ export default function NewProductPage() {
                 <CardDescription>Upload high-quality images of your product (minimum 4 required)</CardDescription>
               </CardHeader>
               <CardContent>
-                <MultiImageUpload images={images} onImagesChange={setImages} minImages={4} maxImages={10} />
+                <MultiImageUpload
+                  images={images}
+                  onImagesChange={setImages}
+                  minImages={4}
+                  maxImages={10}
+                />
               </CardContent>
             </Card>
 
@@ -286,12 +434,30 @@ export default function NewProductPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dimensions">Dimensions (L×W×H cm)</Label>
+                  <Label htmlFor="dimensions">Dimensions (L cm)</Label>
                   <Input
                     id="dimensions"
                     placeholder="e.g., 20×15×5"
-                    value={formData.dimensions}
-                    onChange={(e) => handleInputChange("dimensions", e.target.value)}
+                    value={formData.shipping_length_cm}
+                    onChange={(e) => handleInputChange("shipping_length_cm", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dimensions">Dimensions (W cm)</Label>
+                  <Input
+                    id="dimensions"
+                    placeholder="e.g., 20×15×5"
+                    value={formData.shipping_width_cm}
+                    onChange={(e) => handleInputChange("shipping_width_cm", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dimensions">Dimensions (H cm)</Label>
+                  <Input
+                    id="dimensions"
+                    placeholder="e.g., 20×15×5"
+                    value={formData.shipping_height_cm}
+                    onChange={(e) => handleInputChange("shipping_height_cm", e.target.value)}
                   />
                 </div>
               </CardContent>
@@ -309,7 +475,7 @@ export default function NewProductPage() {
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" >
               <Save className="h-4 w-4 mr-2" />
               {isLoading ? "Creating..." : "Create Product"}
             </Button>
