@@ -15,7 +15,10 @@ import { MultiImageUpload } from "@/components/multi-image-upload"
 import { ArrowLeft, Save, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { uploadMedia } from "@/lib/utils"
+import useFetchData from "@/hooks/useFetchData"
+import axios from "axios"
 
+import Cookies from "js-cookie"
 interface FormData {
   name: string;
   brand: string;
@@ -35,7 +38,15 @@ interface FormData {
   isFeatured: boolean;
   specifications: { key: string; value: string }[];
 }
-
+export type Category = {
+  id: string
+  name: string
+  description: string
+  parent_id: string | null
+  is_active: boolean
+  created_at: string
+  created_by: string | null
+}
 interface UploadedImage {
   file: File
   preview: string
@@ -93,21 +104,24 @@ export default function NewProductPage() {
     handleInputChange("specifications", updatedSpecs);
   };
 
+  const url = `${process.env.NEXT_PUBLIC_API_BASE}/products/categories`
+  const {data} = useFetchData(url)
+  console.log(data)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     // Validate required fields
-    // if (!formData.name || !formData.price || !formData.category || images.length < 4) {
-    //   toast({
-    //     title: "Validation Error",
-    //     description: "Please fill in all required fields and upload at least 4 images",
-    //     variant: "destructive",
-    //   })
-    //   setIsLoading(false)
-    //   return
-    // }
+    if (!formData.name || !formData.price || !formData.category || images.length < 4) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields and upload at least 4 images",
+        variant: "destructive",
+      })
+      setIsLoading(false)
+      return
+    }
     // 2. Upload images/videos to Supabase
     const uploadedMedia = []
 
@@ -149,11 +163,19 @@ export default function NewProductPage() {
       }
     }
     console.log("Starting upload of images:", uploadMedia)
+    const token = Cookies.get("access_token");
     // 3. Transform data to backend shape
     const payload = {
       name: formData.name,
       description: formData.description,
-      specifications: {}, // you can extend this
+      specifications:  formData.specifications 
+    ? Object.fromEntries(
+        formData.specifications.map((spec: { key: string; value: string }) => [
+          spec.key.trim(),
+          spec.value
+        ])
+      )
+    : {}, // you can extend this
       brand: formData.brand,
       tags: formData.tags,
       price: parseFloat(formData.price),
@@ -170,17 +192,27 @@ export default function NewProductPage() {
       media: uploadedMedia,
     }
 
-    console.log("Form Data:", payload)
-    // Simulate API call
-    // await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      // Simulate API call
+    await axios.post(`${process.env.NEXT_PUBLIC_API_BASE}/products/`, payload ,{
+      headers: {
+      Authorization: `Bearer ${token}`,
+      }
+    })
+      
+    // router.push("/dashboard/products")
+    setIsLoading(false)
 
     toast({
       title: "Product Created",
       description: `${formData.name} has been successfully added to your inventory`,
     })
-
-    // router.push("/dashboard/products")
+    } catch (error) {
     setIsLoading(false)
+      console.error("Product creation error:", error)
+    }
+    
+
   }
 
   return (
@@ -404,11 +436,9 @@ export default function NewProductPage() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="smartphones">Smartphones</SelectItem>
-                      <SelectItem value="computers">Computers</SelectItem>
-                      <SelectItem value="tablets">Tablets</SelectItem>
-                      <SelectItem value="audio">Audio</SelectItem>
-                      <SelectItem value="accessories">Accessories</SelectItem>
+                      {data && data?.map((item:Category, index: number) => (
+                        <SelectItem key={index} value={item.id}>{item.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

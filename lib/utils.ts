@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { createClient } from "@supabase/supabase-js";
+import Cookies from "js-cookie";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,4 +57,20 @@ export const uploadMedia = async (file: File | string, bucket = "products") => {
     console.error("Upload error:", err);
     throw err;
   }
+};
+
+export const Fetcher = async (url: string) => {
+  const token = Cookies.get("access_token");
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    }
+  });
+  if (!res.ok) {
+    throw new Error("An error occurred while fetching the data.");
+  }
+
+  return res.json();
 };
