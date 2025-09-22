@@ -8,11 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Filter, Eye, Edit, Trash2, Package } from "lucide-react"
+import useFetchData from "@/hooks/useFetchData";
+import { ProductResponse } from "@/types/product";
+import Image from "next/image"
 
 export default function ProductsPage() {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const url = `${process.env
+    .NEXT_PUBLIC_API_BASE}/products/public?skip=0&limit=100`;
+  const { data } = useFetchData(url);
+
+  const productsData = data as ProductResponse;
+  console.log("Fetched products data:", productsData);
 
   const products = [
     {
@@ -22,7 +32,7 @@ export default function ProductsPage() {
       category: "Smartphones",
       status: "Active",
       stock: 15,
-      image: "/modern-smartphone.png",
+      image: "/modern-smartphone.png"
     },
     {
       id: 2,
@@ -31,7 +41,7 @@ export default function ProductsPage() {
       category: "Computers",
       status: "Active",
       stock: 8,
-      image: "/macbook.jpg",
+      image: "/macbook.jpg"
     },
     {
       id: 3,
@@ -40,7 +50,7 @@ export default function ProductsPage() {
       category: "Audio",
       status: "Low Stock",
       stock: 3,
-      image: "/diverse-people-listening-headphones.png",
+      image: "/diverse-people-listening-headphones.png"
     },
     {
       id: 4,
@@ -49,7 +59,7 @@ export default function ProductsPage() {
       category: "Smartphones",
       status: "Active",
       stock: 12,
-      image: "/samsung-products.png",
+      image: "/samsung-products.png"
     },
     {
       id: 5,
@@ -58,7 +68,7 @@ export default function ProductsPage() {
       category: "Tablets",
       status: "Active",
       stock: 20,
-      image: "/silver-ipad-on-wooden-desk.png",
+      image: "/silver-ipad-on-wooden-desk.png"
     },
     {
       id: 6,
@@ -67,23 +77,28 @@ export default function ProductsPage() {
       category: "Computers",
       status: "Out of Stock",
       stock: 0,
-      image: "/dell-laptop.png",
-    },
-  ]
+      image: "/dell-laptop.png"
+    }
+  ];
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || product.status.toLowerCase().replace(" ", "-") === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" ||
+      product.status.toLowerCase().replace(" ", "-") === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Products</h1>
-          <p className="text-muted-foreground">Manage your product inventory and listings</p>
+          <p className="text-muted-foreground">
+            Manage your product inventory and listings
+          </p>
         </div>
         <Button onClick={() => router.push("/dashboard/products/new")} className="w-fit">
           <Plus className="h-4 w-4 mr-2" />
@@ -95,19 +110,16 @@ export default function ProductsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Filter Products</CardTitle>
-          <CardDescription>Search and filter your product inventory</CardDescription>
+          <CardDescription>
+            Search and filter your product inventory
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+                <Input placeholder="Search products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -128,7 +140,77 @@ export default function ProductsPage() {
 
       {/* Products Grid */}
       <div className="admin-grid">
-        {filteredProducts.map((product, index) => (
+        {productsData?.products?.map((product, index) =>
+          <Card
+            key={product.id}
+            className="admin-card animate-fade-in-up hover:shadow-lg transition-all duration-200"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-16 h-16 bg-muted rounded-lg aspect-square overflow-hidden flex-shrink-0">
+                  <Image
+                    src={product?.media?.[0]?.media_url || "/placeholder.svg"}
+                    alt={product.name}
+                    width={500}
+                    height={500}
+                    className="w-full h-full "
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {product?.category?.name}
+                  </p>
+                  <div className=" mt-2">
+                    <span className="font-bold text-primary">
+                      {product.price}
+                    </span>
+                    <Badge
+                      variant={
+                        product.status === "active"
+                          ? "default"
+                          : product.status === "Low Stock"
+                            ? "secondary"
+                            : "destructive"
+                      }
+                      className=" capitalize"
+                    >
+                      {product.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Stock: {product?.stock_quantity}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm">
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      <div className="admin-grid">
+        {filteredProducts.map((product, index) =>
           <Card
             key={product.id}
             className="admin-card animate-fade-in-up hover:shadow-lg transition-all duration-200"
@@ -144,10 +226,16 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{product.name}</h3>
-                  <p className="text-sm text-muted-foreground">{product.category}</p>
+                  <h3 className="font-semibold text-foreground truncate">
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {product.category}
+                  </p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="font-bold text-primary">{product.price}</span>
+                    <span className="font-bold text-primary">
+                      {product.price}
+                    </span>
                     <Badge
                       variant={
                         product.status === "Active"
@@ -160,7 +248,9 @@ export default function ProductsPage() {
                       {product.status}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Stock: {product.stock}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Stock: {product.stock}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
@@ -174,33 +264,32 @@ export default function ProductsPage() {
                     Edit
                   </Button>
                 </div>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
 
       {/* Empty State */}
-      {filteredProducts.length === 0 && (
-        <Card className="text-center py-12">
+      {filteredProducts.length === 0 && <Card className="text-center py-12">
           <CardContent>
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No products found</h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery || statusFilter !== "all"
-                ? "Try adjusting your search or filter criteria"
-                : "Get started by adding your first product"}
+              {searchQuery || statusFilter !== "all" ? "Try adjusting your search or filter criteria" : "Get started by adding your first product"}
             </p>
             <Button onClick={() => router.push("/dashboard/products/new")}>
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Button>
           </CardContent>
-        </Card>
-      )}
-    </div>
-  )
+        </Card>}
+    </div>;
 }
