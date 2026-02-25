@@ -15,12 +15,12 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const { login, isLoading } = useAuth();
-  
-    const handleLogin = async (e: React.FormEvent) => {
-      e.preventDefault()
-  
-      login({ username: email, password })
-    }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    login({ username: email, password })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
