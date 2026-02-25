@@ -25,7 +25,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    login(email, password)
+    login({ username: email, password })
   }
 
   return (

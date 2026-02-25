@@ -19,7 +19,7 @@ export default function AdminLoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
       e.preventDefault()
   
-      login(email, password)
+      login({ username: email, password })
     }
 
   return (
@@ -33,8 +33,8 @@ export default function AdminLoginPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">TechHub Admin</h1>
-            <p className="text-muted-foreground">Sign in to manage your e-commerce platform</p>
+            <h1 className="text-3xl font-bold text-foreground">Ordvel Admin</h1>
+            <p className="text-muted-foreground">Sign in to manage Ordvel marketplatform</p>
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export default function AdminLoginPage() {
 
         {/* Footer */}
         <div className="text-center text-sm text-muted-foreground">
-          <p>© 2024 TechHub Admin Dashboard. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Ordvel Admin Dashboard. All rights reserved.</p>
         </div>
       </div>
     </div>

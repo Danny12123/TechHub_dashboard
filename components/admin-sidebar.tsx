@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { LayoutDashboard, Package, Users, ShoppingCart, BarChart3, Settings, LogOut, X, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/context/AuthContext"
 
 interface AdminSidebarProps {
   open: boolean
@@ -27,8 +28,9 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin-logged-in")
+  const { logout } = useAuth()
+  const handleLogout = async () => {
+    await logout()
     toast({
       title: "Logged out",
       description: "You have been successfully logged out",
